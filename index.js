@@ -15,7 +15,7 @@ app.use(cors());
 
 // Conectar ao MongoDB
 const mongoUrl = process.env.MONGO_URL;
-
+//teste
 mongoose.connect(mongoUrl)
   .then(() => {
     console.log("Conexão estabelecida com sucesso com o MongoDB");
