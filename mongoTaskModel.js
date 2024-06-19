@@ -5,6 +5,8 @@ const mongoSchema = new mongoose.Schema({
     title: String,
     date: String,
     text: String,  
+    reminderDate: String,
+    reminderHour: String, 
 });
 
 // Criação do model

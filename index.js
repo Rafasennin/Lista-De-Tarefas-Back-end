@@ -15,6 +15,7 @@ app.use(cors());
 
 // Conectar ao MongoDB
 const mongoUrl = process.env.MONGO_URL;
+
 //teste
 mongoose.connect(mongoUrl)
   .then(() => {
@@ -116,13 +117,17 @@ app.get("/tasks", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
 // Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
   const newTask = new TaskModel({
     author: req.body.author,
     title: req.body.title,
     date: req.body.date,
-    text: req.body.text
+    text: req.body.text,
+    reminderDate: req.body.reminderDate, 
+    reminderHour: req.body.reminderHour
   });
 
   try {
@@ -139,6 +144,8 @@ app.post("/tasks", async (req, res) => {
             <ul>
               <li><strong>Nome da Tarefa:</strong> ${newTask.title}</li>
               <li><strong>Data de Criação:</strong> ${newTask.date}</li>
+              <li><strong>Data do Lembrete:</strong> ${newTask.reminderDate}</li>
+              <li><strong>Hora do Lembrete:</strong> ${newTask.reminderHour}</li>
             </ul>
             <p><strong>Descrição da Tarefa:</strong></p>
             <p>${newTask.text}</p>
@@ -160,22 +167,6 @@ app.post("/tasks", async (req, res) => {
 });
 
 
-// Rota para buscar uma tarefa pelo ID
-app.get("/tasks/:id", async (req, res) => {
-  console.log("GET /tasks/:id called with id:", req.params.id);
-  try {
-    const task = await TaskModel.findById(req.params.id);
-    if (task === null) {
-      console.log("Tarefa não encontrada com o id:", req.params.id);
-      return res.status(404).json({ message: "Tarefa não encontrada" });
-    }
-    res.json(task);
-  } catch (error) {
-    console.error("Erro ao buscar tarefa:", error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
 // Rota para editar uma tarefa pelo ID
 app.put("/tasks/:id", async (req, res) => {
   console.log("PUT /tasks/:id called with id:", req.params.id);
@@ -191,6 +182,7 @@ app.put("/tasks/:id", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 // Rota para deletar uma tarefa pelo ID
 app.delete("/tasks/:id", async (req, res) => {
