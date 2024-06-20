@@ -208,20 +208,27 @@ app.delete("/tasks/:id", async (req, res) => {
 
 //******************Rotas para usuarios**********************
 
-//***************Adicionar um novo usuario************ 
+//***************Adicionar um novo usuario************
 app.post("/users", async (req, res) => {
+  console.log("Recebendo solicitação para adicionar um novo usuário...");
+  console.log("Dados recebidos:", req.body);
+
   const newUser = new UserModel({
-    userName: req.body.userData.userName,
-    email: req.body.userData.email,
-    password: req.body.userData.password
+    userName: req.body.userName,
+    email: req.body.email,
+    password: req.body.password
   });
 
   try {
+    console.log("Salvando novo usuário no banco de dados...");
     await newUser.save();
+    console.log("Usuário salvo com sucesso!");
+
     res.status(201).json("userSaved");
 
     // Enviar email após salvar o usuário
     try {
+      console.log("Enviando email de confirmação...");
       const infoEmail = await sendMail(
         "rafasennin@hotmail.com",
         "Novo usuário cadastrado",
