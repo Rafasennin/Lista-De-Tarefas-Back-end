@@ -3,8 +3,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const ContatoModel = require("./mongoModel"); 
-const TaskModel = require("./mongoTaskModel");
+const ContatoModel = require("./models/mongoModel"); 
+const TaskModel = require("./models/mongoTaskModel");
+const UserModel = require('./models/mongoSingUpModel');
 const sendMail = require("./nodeMailer");
 
 const app = express();
@@ -167,6 +168,7 @@ app.post("/tasks", async (req, res) => {
 });
 
 
+
 // Rota para editar uma tarefa pelo ID
 app.put("/tasks/:id", async (req, res) => {
   console.log("PUT /tasks/:id called with id:", req.params.id);
@@ -201,6 +203,25 @@ app.delete("/tasks/:id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
+// Rota para criar um novo usuário
+app.post("/users", async (req, res) => {
+  const newUser = new UserModel({
+    userName: req.body.userName,
+    email: req.body.email,
+    password: req.body.password
+  });
+
+  try {
+    await newUser.save();
+    res.status(201).json("userSaved");
+  } catch (error) {
+    console.error("Erro ao salvar usuário:", error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 
 // Iniciar o servidor
 const PORT = process.env.PORT || 8080;
