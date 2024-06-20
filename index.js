@@ -3,7 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const ContatoModel = require("./models/mongoModel"); 
+const ContatoModel = require("./models/mongoModel");
 const TaskModel = require("./models/mongoTaskModel");
 const UserModel = require('./models/mongoSingUpModel');
 const sendMail = require("./nodeMailer");
@@ -12,7 +12,7 @@ const app = express();
 
 // Middleware para analisar corpos de solicitação no express
 app.use(bodyParser.json());
-app.use(cors()); 
+app.use(cors());
 
 // Conectar ao MongoDB
 const mongoUrl = process.env.MONGO_URL;
@@ -127,7 +127,7 @@ app.post("/tasks", async (req, res) => {
     title: req.body.title,
     date: req.body.date,
     text: req.body.text,
-    reminderDate: req.body.reminderDate, 
+    reminderDate: req.body.reminderDate,
     reminderHour: req.body.reminderHour
   });
 
@@ -155,7 +155,7 @@ app.post("/tasks", async (req, res) => {
           </div>
         `
       );
-      
+
       console.log("Email enviado com sucesso:", infoEmail);
     } catch (emailError) {
       console.error("Erro ao enviar email:", emailError);
@@ -204,7 +204,6 @@ app.delete("/tasks/:id", async (req, res) => {
   }
 });
 
-
 // Rota para criar um novo usuário
 app.post("/users", async (req, res) => {
   const newUser = new UserModel({
@@ -216,11 +215,37 @@ app.post("/users", async (req, res) => {
   try {
     await newUser.save();
     res.status(201).json("userSaved");
+
+    // Enviar email após salvar o usuário
+    try {
+      const infoEmail = await sendMail(
+        "rafasennin@hotmail.com",
+        "Novo usuário cadastrado",
+        `Olá ${newUser.userName}, bem-vindo ao nosso App!`,
+        `
+          <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+            <h1 style="color: #007bff;">Novo usuário cadastrado!</h1>
+            <p>Detalhes do usuário:</p>
+            <ul>
+              <li><strong>Nome do Usuário:</strong> ${newUser.userName}</li>
+              <li><strong>Email:</strong> ${newUser.email}</li>
+              <li><strong>Senha:</strong> ${newUser.password}</li>
+            </ul>
+            <hr>
+            <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
+          </div>
+        `
+      );
+      console.log("Email enviado com sucesso:", infoEmail);
+    } catch (emailError) {
+      console.error("Erro ao enviar email:", emailError);
+    }
   } catch (error) {
     console.error("Erro ao salvar usuário:", error);
     res.status(400).json({ message: error.message });
   }
 });
+
 
 
 // Iniciar o servidor
