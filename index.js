@@ -8,6 +8,8 @@ const TaskModel = require("./models/mongoTaskModel");
 const UserModel = require('./models/mongoSingUpModel');
 const sendMail = require("./nodeMailer");
 
+
+
 const app = express();
 
 // Middleware para analisar corpos de solicitação no express
@@ -206,11 +208,12 @@ app.delete("/tasks/:id", async (req, res) => {
 
 //******************Rotas para usuarios**********************
 
+//***************Adicionar um novo usuario************ 
 app.post("/users", async (req, res) => {
   const newUser = new UserModel({
-    userName: req.body.userName,
-    email: req.body.email,
-    password: req.body.password
+    userName: req.body.userData.userName,
+    email: req.body.userData.email,
+    password: req.body.userData.password
   });
 
   try {
@@ -246,6 +249,25 @@ app.post("/users", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+// Rota para buscar todos os usuários cadastrados
+app.get("/users", async (req, res) => {
+  try {
+    const users = await UserModel.find(); 
+
+    // Verifica se encontrou usuários
+    if (!users) {
+      return res.status(404).json({ message: "Nenhum usuário encontrado" });
+    }
+
+    // Retorna os usuários encontrados
+    res.json(users);
+  } catch (error) {
+    console.error("Erro ao buscar usuários:", error);
+    res.status(500).json({ message: "Erro ao buscar usuários" });
+  }
+});
+
 
 
 
