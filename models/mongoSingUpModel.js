@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 
-const mongoSchema = new mongoose.Schema({
-    userName: String,
-    email:String,
-    password: String,
+const userSchema = new mongoose.Schema({
+  userName: { type: String, required: true },
+  email: { type: String, required: true },
+  password: { type: String, required: true }
+}, {
+  collection: 'users' // Especifica explicitamente o nome da coleção
 });
 
-// Criação do model
-const userSingUpModel = mongoose.model('users', mongoSchema);
+const UserModel = mongoose.model('User', userSchema);
 
-module.exports = userSingUpModel;
+module.exports = UserModel;

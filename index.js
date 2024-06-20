@@ -205,9 +205,6 @@ app.delete("/tasks/:id", async (req, res) => {
 });
 
 
-
-//******************Rotas para usuarios**********************
-
 //***************Adicionar um novo usuario************
 app.post("/users", async (req, res) => {
   console.log("Recebendo solicitação para adicionar um novo usuário...");
@@ -257,10 +254,12 @@ app.post("/users", async (req, res) => {
   }
 });
 
+
+
 // Rota para buscar todos os usuários cadastrados
 app.get("/users", async (req, res) => {
   try {
-    const users = await UserModel.find(); 
+    const users = await UserModel.find();
 
     // Verifica se encontrou usuários
     if (!users) {
