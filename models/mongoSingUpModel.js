@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const mongoSchema = new mongoose.Schema({
-    userName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    userName: String,
+    email:String,
+    password: String,
 });
 
 // Criação do model
-const userSingUpModel = mongoose.model('Users', mongoSchema);
+const userSingUpModel = mongoose.model('users', mongoSchema);
 
 module.exports = userSingUpModel;

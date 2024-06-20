@@ -26,6 +26,8 @@ mongoose.connect(mongoUrl)
     console.error("Erro ao conectar com o MongoDB:", error);
   });
 
+//******************Rotas para contatos**********************
+
 // Rota para listar todos os contatos
 app.get("/contatos", async (req, res) => {
   try {
@@ -105,7 +107,7 @@ app.delete("/contatos/:id", async (req, res) => {
   }
 });
 
-// Rotas para Tasks
+//******************Rotas para tasks**********************
 
 // Rota para listar todas as tarefas
 app.get("/tasks", async (req, res) => {
@@ -118,7 +120,6 @@ app.get("/tasks", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 // Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
@@ -167,8 +168,6 @@ app.post("/tasks", async (req, res) => {
   }
 });
 
-
-
 // Rota para editar uma tarefa pelo ID
 app.put("/tasks/:id", async (req, res) => {
   console.log("PUT /tasks/:id called with id:", req.params.id);
@@ -184,7 +183,6 @@ app.put("/tasks/:id", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
 
 // Rota para deletar uma tarefa pelo ID
 app.delete("/tasks/:id", async (req, res) => {
@@ -204,7 +202,10 @@ app.delete("/tasks/:id", async (req, res) => {
   }
 });
 
-// Rota para criar um novo usuário
+
+
+//******************Rotas para usuarios**********************
+
 app.post("/users", async (req, res) => {
   const newUser = new UserModel({
     userName: req.body.userName,
