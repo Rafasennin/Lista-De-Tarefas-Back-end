@@ -1,6 +1,6 @@
-const mongoose = require("mongoose") 
+const mongoose = require("mongoose");
 
-const mongoSchema = new mongoose.Schema({
+const taskSchema = new mongoose.Schema({
     author: String,
     title: String,
     date: String,
@@ -9,7 +9,6 @@ const mongoSchema = new mongoose.Schema({
     reminderHour: String, 
 });
 
-// Criação do model
-const MongoTaskModel = mongoose.model('users-list', mongoSchema);
+const TaskModel = mongoose.model('users-list', taskSchema);
 
-module.exports = MongoTaskModel;
+module.exports = TaskModel;

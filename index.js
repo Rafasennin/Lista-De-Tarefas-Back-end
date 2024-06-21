@@ -1,4 +1,4 @@
-require("dotenv").config(); // Para carregar variáveis de ambiente do arquivo .env
+require('dotenv').config(); 
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -8,8 +8,6 @@ const TaskModel = require("./models/mongoTaskModel");
 const UserModel = require('./models/mongoSingUpModel');
 const sendMail = require("./nodeMailer");
 
-
-
 const app = express();
 
 // Middleware para analisar corpos de solicitação no express
@@ -17,7 +15,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 // Conectar ao MongoDB
-const mongoUrl = process.env.MONGO_URL;
+const mongoUrl = process.env.MONGO_CONECTION;
 
 //teste
 mongoose.connect(mongoUrl)
@@ -206,10 +204,8 @@ app.delete("/tasks/:id", async (req, res) => {
 
 
 //***************Adicionar um novo usuario************
-app.post("/users", async (req, res) => {
-  console.log("Recebendo solicitação para adicionar um novo usuário...");
-  console.log("Dados recebidos:", req.body);
 
+app.post("/users", async (req, res) => {
   const newUser = new UserModel({
     userName: req.body.userName,
     email: req.body.email,
@@ -217,10 +213,7 @@ app.post("/users", async (req, res) => {
   });
 
   try {
-    console.log("Salvando novo usuário no banco de dados...");
     await newUser.save();
-    console.log("Usuário salvo com sucesso!");
-
     res.status(201).json("userSaved");
 
     // Enviar email após salvar o usuário

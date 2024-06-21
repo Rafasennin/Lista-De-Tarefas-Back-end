@@ -1,17 +1,17 @@
 
-const mongoose = require("mongoose") 
+const mongoose = require("mongoose");
 
-const mongoSchema = new mongoose.Schema({
+const contactSchema = new mongoose.Schema({
     name: String,
     email: String,
     message: String,
     date: { type: Date, default: Date.now },  
-});
+ });
 
-// Criação do model
-const MongoModel = mongoose.model('user-contacts', mongoSchema);
+const ContactModel = mongoose.model('user-contacts', contactSchema);
 
-module.exports = MongoModel;
+module.exports = ContactModel;
+
 
 
 
