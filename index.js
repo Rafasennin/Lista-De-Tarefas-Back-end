@@ -109,17 +109,6 @@ app.delete("/contatos/:id", async (req, res) => {
 
 //******************Rotas para tasks**********************
 
-// Rota para listar todas as tarefas
-app.get("/tasks", async (req, res) => {
-  try {
-    console.log("GET /tasks called");
-    const tasks = await TaskModel.find();
-    res.json(tasks);
-  } catch (error) {
-    console.error("Erro ao listar tarefas:", error);
-    res.status(500).json({ message: error.message });
-  }
-});
 
 // Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
@@ -205,16 +194,24 @@ app.delete("/tasks/:id", async (req, res) => {
 });
 
 // Rota para listar todas as tarefas de um usuário específico
-app.get("/tasks/user/:userId", async (req, res) => {
+app.get("/tasks", async (req, res) => {
   try {
-    console.log("GET /tasks/user/:userId called with userId:", req.params.userId);
-    const tasks = await TaskModel.find({ userId: req.params.userId });
+    const userId = req.query.userId;
+    // Verifique se userId foi fornecido
+    if (!userId) {
+      return res.status(400).json({ message: "userId é necessário" });
+    }
+    
+    // Filtrar tarefas pelo userId usando Mongoose
+    const tasks = await TaskModel.find({ userId: userId });
+    
     res.json(tasks);
   } catch (error) {
     console.error("Erro ao listar tarefas:", error);
     res.status(500).json({ message: error.message });
   }
 });
+
 
 
 
