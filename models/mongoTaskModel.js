@@ -7,8 +7,18 @@ const taskSchema = new mongoose.Schema({
     text: String,  
     reminderDate: String,
     reminderHour: String, 
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      }
 });
 
 const TaskModel = mongoose.model('users-list', taskSchema);
-
 module.exports = TaskModel;
+
+
+
+
+
+

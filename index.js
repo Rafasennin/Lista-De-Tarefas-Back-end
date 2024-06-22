@@ -1,4 +1,4 @@
-require('dotenv').config(); 
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -129,7 +129,8 @@ app.post("/tasks", async (req, res) => {
     date: req.body.date,
     text: req.body.text,
     reminderDate: req.body.reminderDate,
-    reminderHour: req.body.reminderHour
+    reminderHour: req.body.reminderHour,
+    userId: req.body.userId 
   });
 
   try {
@@ -168,6 +169,7 @@ app.post("/tasks", async (req, res) => {
   }
 });
 
+
 // Rota para editar uma tarefa pelo ID
 app.put("/tasks/:id", async (req, res) => {
   console.log("PUT /tasks/:id called with id:", req.params.id);
@@ -201,6 +203,19 @@ app.delete("/tasks/:id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// Rota para listar todas as tarefas de um usuário específico
+app.get("/tasks/user/:userId", async (req, res) => {
+  try {
+    console.log("GET /tasks/user/:userId called with userId:", req.params.userId);
+    const tasks = await TaskModel.find({ userId: req.params.userId });
+    res.json(tasks);
+  } catch (error) {
+    console.error("Erro ao listar tarefas:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 
 //***************Adicionar um novo usuario************
@@ -246,8 +261,6 @@ app.post("/users", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
-
 
 // Rota para buscar todos os usuários cadastrados
 app.get("/users", async (req, res) => {
