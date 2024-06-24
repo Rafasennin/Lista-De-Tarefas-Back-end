@@ -7,6 +7,7 @@ const ContatoModel = require("./models/mongoModel");
 const TaskModel = require("./models/mongoTaskModel");
 const UserModel = require('./models/mongoSingUpModel');
 const sendMail = require("./nodeMailer");
+const cron = require('node-cron');
 
 const app = express();
 
@@ -27,7 +28,6 @@ mongoose.connect(mongoUrl)
   });
 
 //******************Rotas para contatos**********************
-
 // Rota para listar todos os contatos
 app.get("/contatos", async (req, res) => {
   try {
@@ -107,9 +107,8 @@ app.delete("/contatos/:id", async (req, res) => {
   }
 });
 
+
 //******************Rotas para tasks**********************
-
-
 // Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
   const newTask = new TaskModel({
@@ -119,38 +118,48 @@ app.post("/tasks", async (req, res) => {
     text: req.body.text,
     reminderDate: req.body.reminderDate,
     reminderHour: req.body.reminderHour,
-    userId: req.body.userId 
+    userId: req.body.userId
   });
 
   try {
     await newTask.save();
-    try {
-      const infoEmail = await sendMail(
-        "rafasennin@hotmail.com",
-        "rafasennin@gmail.com",
-        "Nova tarefa cadastrada",
-        `
-          <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-            <h1 style="color: #007bff;">${newTask.author} cadastrou uma nova tarefa!</h1>
-            <p>Detalhes da tarefa:</p>
-            <ul>
-              <li><strong>Nome da Tarefa:</strong> ${newTask.title}</li>
-              <li><strong>Data de Criação:</strong> ${newTask.date}</li>
-              <li><strong>Data do Lembrete:</strong> ${newTask.reminderDate}</li>
-              <li><strong>Hora do Lembrete:</strong> ${newTask.reminderHour}</li>
-            </ul>
-            <p><strong>Descrição da Tarefa:</strong></p>
-            <p>${newTask.text}</p>
-            <hr>
-            <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
-          </div>
-        `
-      );
 
-      console.log("Email enviado com sucesso:", infoEmail);
-    } catch (emailError) {
-      console.error("Erro ao enviar email:", emailError);
-    }
+    // Agendar envio de email no dia e hora do lembrete
+    const reminderDateTime = new Date(newTask.reminderDate + 'T' + newTask.reminderHour + ':00');
+    const cronTime = `${reminderDateTime.getMinutes()} ${reminderDateTime.getHours()} 
+                      ${reminderDateTime.getDate()} ${reminderDateTime.getMonth() + 1} *`;
+
+    cron.schedule(cronTime, async () => {
+      try {
+        const user = await UserModel.findById(newTask.userId);
+        if (user) {
+          await sendMail(
+            user.email,
+            "Lembrete de Tarefa",
+            `Olá ${newTask.author}, você tem um lembrete de tarefa.`,
+            `
+              <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+                <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
+                <p>Detalhes da tarefa:</p>
+                <ul>
+                  <li><strong>Nome da Tarefa:</strong> ${newTask.title}</li>
+                  <li><strong>Data do Lembrete:</strong> ${newTask.reminderDate}</li>
+                  <li><strong>Hora do Lembrete:</strong> ${newTask.reminderHour}</li>
+                </ul>
+                <p><strong>Descrição da Tarefa:</strong></p>
+                <p>${newTask.text}</p>
+                <hr>
+                <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
+              </div>
+            `
+          );
+          console.log("Email de lembrete enviado com sucesso");
+        }
+      } catch (emailError) {
+        console.error("Erro ao enviar email de lembrete:", emailError);
+      }
+    });
+
     res.status(201).json("taskSaved");
   } catch (error) {
     console.error("Erro ao salvar tarefa:", error);
@@ -201,10 +210,10 @@ app.get("/tasks", async (req, res) => {
     if (!userId) {
       return res.status(400).json({ message: "userId é necessário" });
     }
-    
+
     // Filtrar tarefas pelo userId usando Mongoose
     const tasks = await TaskModel.find({ userId: userId });
-    
+
     res.json(tasks);
   } catch (error) {
     console.error("Erro ao listar tarefas:", error);
@@ -213,10 +222,7 @@ app.get("/tasks", async (req, res) => {
 });
 
 
-
-
 //***************Adicionar um novo usuario************
-
 app.post("/users", async (req, res) => {
   const newUser = new UserModel({
     userName: req.body.userName,
