@@ -158,6 +158,9 @@ app.post("/tasks", async (req, res) => {
       } catch (emailError) {
         console.error("Erro ao enviar email de lembrete:", emailError);
       }
+    }, {
+      scheduled: true,
+      timezone: "America/Sao_Paulo"  // Ajuste o fuso horário conforme necessário
     });
 
     res.status(201).json("taskSaved");
