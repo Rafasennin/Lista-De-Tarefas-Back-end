@@ -110,7 +110,7 @@ app.delete("/contatos/:id", async (req, res) => {
 
 //******************Rotas para tasks**********************
 // Rota para adicionar uma nova tarefa
-app.post("/tasks", async (req, res) => {
+/*app.post("/tasks", async (req, res) => {
   const newTask = new TaskModel({
     author: req.body.author,
     title: req.body.title,
@@ -128,8 +128,8 @@ app.post("/tasks", async (req, res) => {
     const reminderDateTime = new Date(newTask.reminderDate + 'T' + newTask.reminderHour + ':00');
     const cronTime = `${reminderDateTime.getMinutes()} ${reminderDateTime.getHours()} 
                       ${reminderDateTime.getDate()} ${reminderDateTime.getMonth() + 1} *`;
-
-    cron.schedule(cronTime, async () => {
+                      
+   cron.schedule(cronTime, async () => {
       try {
         const user = await UserModel.findById(newTask.userId);
         if (user) {
@@ -162,6 +162,58 @@ app.post("/tasks", async (req, res) => {
       scheduled: true,
       timezone: "America/Sao_Paulo"  // Ajuste o fuso horário conforme necessário
     });
+
+    res.status(201).json("taskSaved");
+  } catch (error) {
+    console.error("Erro ao salvar tarefa:", error);
+    res.status(400).json({ message: error.message });
+  }
+});*/
+
+// Rota para adicionar uma nova tarefa
+app.post("/tasks", async (req, res) => {
+  const newTask = new TaskModel({
+    author: req.body.author,
+    title: req.body.title,
+    date: req.body.date,
+    text: req.body.text,
+    reminderDate: req.body.reminderDate,
+    reminderHour: req.body.reminderHour,
+    userId: req.body.userId
+  });
+
+  try {
+    await newTask.save();
+
+    // Enviar email imediatamente após salvar a tarefa
+    try {
+      const user = await UserModel.findById(newTask.userId);
+      if (user) {
+        await sendMail(
+          user.email,
+          "Lembrete de Tarefa",
+          `Olá ${newTask.author}, você tem um lembrete de tarefa.`,
+          `
+            <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+              <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
+              <p>Detalhes da tarefa:</p>
+              <ul>
+                <li><strong>Nome da Tarefa:</strong> ${newTask.title}</li>
+                <li><strong>Data do Lembrete:</strong> ${newTask.reminderDate}</li>
+                <li><strong>Hora do Lembrete:</strong> ${newTask.reminderHour}</li>
+              </ul>
+              <p><strong>Descrição da Tarefa:</strong></p>
+              <p>${newTask.text}</p>
+              <hr>
+              <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
+            </div>
+          `
+        );
+        console.log("Email de lembrete enviado com sucesso");
+      }
+    } catch (emailError) {
+      console.error("Erro ao enviar email de lembrete:", emailError);
+    }
 
     res.status(201).json("taskSaved");
   } catch (error) {
