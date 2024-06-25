@@ -302,6 +302,31 @@ app.delete("/users/:id", async (req, res) => {
 });
 
 
+// Rota para login de usuário
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await UserModel.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Senha inválida" });
+    }
+
+    res.status(200).json({ message: "Login bem-sucedido", user });
+  } catch (error) {
+    console.error("Erro ao fazer login:", error);
+    res.status(500).json({ message: "Erro ao fazer login" });
+  }
+});
+
+
 // Iniciar o servidor
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
