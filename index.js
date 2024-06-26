@@ -329,13 +329,13 @@ app.post("/login", async (req, res) => {
     // Gera o token JWT
     const token = jwt.sign({ id: user._id, email: user.email }, secretKey, { expiresIn: '1h' });
 
-    res.status(200).json({ message: "Login bem-sucedido", token });
+    // Retorna os dados do usuário junto com o token
+    res.status(200).json({ message: "Login bem-sucedido", token, user: { userName: user.userName, _id: user._id } });
   } catch (error) {
     console.error("Erro ao fazer login:", error);
     res.status(500).json({ message: "Erro ao fazer login" });
   }
 });
-
 
 // Iniciar o servidor
 const PORT = process.env.PORT || 8080;
