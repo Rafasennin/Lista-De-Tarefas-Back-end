@@ -220,16 +220,22 @@ app.get("/tasks", async (req, res) => {
 app.post("/users", async (req, res) => {
   const { userName, email, password } = req.body;
 
-  // Gerar hash da senha
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const newUser = new UserModel({
-    userName,
-    email,
-    password: hashedPassword
-  });
-
   try {
+    // Verificar se o email já está em uso
+    const existingUser = await UserModel.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: 'Email já está em uso.' });
+    }
+
+    // Gerar hash da senha
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new UserModel({
+      userName,
+      email,
+      password: hashedPassword
+    });
+
     await newUser.save();
     res.status(201).json("userSaved");
 
@@ -262,7 +268,6 @@ app.post("/users", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
 // Rota para buscar todos os usuários cadastrados
 app.get("/users", async (req, res) => {
   try {
