@@ -9,6 +9,8 @@ const UserModel = require('./models/mongoSingUpModel');
 const sendMail = require("./nodeMailer");
 const app = express();
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const secretKey = process.env.SECRETKEY
 
 // Middleware para analisar corpos de solicitação no express
 app.use(bodyParser.json());
@@ -324,7 +326,10 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Senha inválida" });
     }
 
-    res.status(200).json({ message: "Login bem-sucedido", user });
+    // Gera o token JWT
+    const token = jwt.sign({ id: user._id, email: user.email }, secretKey, { expiresIn: '1h' });
+
+    res.status(200).json({ message: "Login bem-sucedido", token });
   } catch (error) {
     console.error("Erro ao fazer login:", error);
     res.status(500).json({ message: "Erro ao fazer login" });
