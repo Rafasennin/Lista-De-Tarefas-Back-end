@@ -19,20 +19,31 @@ const scheduleTasks = require('./scheduler');
 app.use(bodyParser.json());
 app.use(cors());
 
-// Conectar ao MongoDB
+// URL de conexão com o mongo
 const mongoUrl = process.env.MONGO_CONECTION;
 
-//Conexão com o mongo
+
+// Configuração do MongoDB
 mongoose.connect(mongoUrl)
   .then(() => {
     console.log("Conexão estabelecida com sucesso com o MongoDB");
-    scheduleTasks();
+
+    // Função para re-agendar tarefas
+    scheduleTasks()
+      .then(() => {
+        console.log("Tarefas agendadas com sucesso após a conexão ao MongoDB");
+      })
+      .catch(error => {
+        console.error("Erro ao agendar tarefas após a conexão ao MongoDB:", error);
+      });
   })
   .catch(error => {
     console.error("Erro ao conectar com o MongoDB:", error);
   });
 
+  
 //******************Rotas para contatos**********************
+
 // Rota para listar todos os contatos
 app.get("/contatos", async (req, res) => {
   try {
@@ -114,6 +125,8 @@ app.delete("/contatos/:id", async (req, res) => {
 
 
 //******************Rotas para tasks**********************
+
+// Rota para adicionar uma tarefa
 app.post("/tasks", async (req, res) => {
   const newTask = new TaskModel({
     author: req.body.author,
@@ -138,6 +151,7 @@ app.post("/tasks", async (req, res) => {
   }
 });
 
+// Agenda a tarefa de acordo com o lembrete e envia o email
 function scheduleTask(task) {
   const reminderDateTime = new Date(task.reminderDate + 'T' + task.reminderHour + ':00');
   const minute = reminderDateTime.getMinutes();
