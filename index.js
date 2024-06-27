@@ -11,6 +11,8 @@ const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRETKEY
+const cron = require("node-cron");
+const { tryCatch } = require('bullmq');
 
 // Middleware para analisar corpos de solicitação no express
 app.use(bodyParser.json());
@@ -110,6 +112,7 @@ app.delete("/contatos/:id", async (req, res) => {
 
 
 //******************Rotas para tasks**********************
+
 // Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
   const newTask = new TaskModel({
@@ -124,18 +127,27 @@ app.post("/tasks", async (req, res) => {
 
   try {
     await newTask.save();
+
     // Agendar envio de email no dia e hora do lembrete
     const reminderDateTime = new Date(newTask.reminderDate + 'T' + newTask.reminderHour + ':00');
 
-    // Enviar email imediatamente após salvar a tarefa
-    try {
-      const user = await UserModel.findById(newTask.userId);
-      if (user) {
-        await sendMail(
-          user.email,
-          "Lembrete de Tarefa",
-          `Olá ${newTask.author}, você tem um lembrete de tarefa.`,
-          `<p> Data: ${reminderDateTime} </p>
+    const minute = reminderDateTime.getMinutes();
+    const hour = reminderDateTime.getHours();
+    const dayOfMonth = reminderDateTime.getDate();
+    const month = reminderDateTime.getMonth() + 1; // getMonth retorna de 0 a 11
+
+    // Adicionamos '*' para o campo 'dia da semana'
+    const cronExpression = `${minute} ${hour} ${dayOfMonth} ${month} *`;
+
+    cron.schedule(cronExpression, async () => {
+      try {
+        const user = await UserModel.findById(newTask.userId);
+        if (user) {
+          await sendMail(
+            user.email,
+            "Lembrete de Tarefa",
+            `Olá ${newTask.author}, você tem um lembrete de tarefa.`,
+            `
               <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
                 <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
                 <p>Detalhes da tarefa:</p>
@@ -150,12 +162,13 @@ app.post("/tasks", async (req, res) => {
                 <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
               </div>
             `
-        );
-        console.log("Email de lembrete enviado com sucesso");
+          );
+          console.log("Email de lembrete enviado com sucesso");
+        }
+      } catch (emailError) {
+        console.error("Erro ao enviar email de lembrete:", emailError);
       }
-    } catch (emailError) {
-      console.error("Erro ao enviar email de lembrete:", emailError);
-    }
+    });
 
     res.status(201).json("taskSaved");
   } catch (error) {
