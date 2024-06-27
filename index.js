@@ -12,7 +12,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRETKEY
 const cron = require("node-cron");
-const { tryCatch } = require('bullmq');
+const scheduleTasks = require('./scheduler');
+
 
 // Middleware para analisar corpos de solicitação no express
 app.use(bodyParser.json());
@@ -25,6 +26,7 @@ const mongoUrl = process.env.MONGO_CONECTION;
 mongoose.connect(mongoUrl)
   .then(() => {
     console.log("Conexão estabelecida com sucesso com o MongoDB");
+    scheduleTasks();
   })
   .catch(error => {
     console.error("Erro ao conectar com o MongoDB:", error);
@@ -112,8 +114,6 @@ app.delete("/contatos/:id", async (req, res) => {
 
 
 //******************Rotas para tasks**********************
-
-// Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
   const newTask = new TaskModel({
     author: req.body.author,
@@ -129,46 +129,7 @@ app.post("/tasks", async (req, res) => {
     await newTask.save();
 
     // Agendar envio de email no dia e hora do lembrete
-    const reminderDateTime = new Date(newTask.reminderDate + 'T' + newTask.reminderHour + ':00');
-
-    const minute = reminderDateTime.getMinutes();
-    const hour = reminderDateTime.getHours();
-    const dayOfMonth = reminderDateTime.getDate();
-    const month = reminderDateTime.getMonth() + 1; // getMonth retorna de 0 a 11
-
-    // Adicionamos '*' para o campo 'dia da semana'
-    const cronExpression = `${minute} ${hour} ${dayOfMonth} ${month} *`;
-
-    cron.schedule(cronExpression, async () => {
-      try {
-        const user = await UserModel.findById(newTask.userId);
-        if (user) {
-          await sendMail(
-            user.email,
-            "Lembrete de Tarefa",
-            `Olá ${newTask.author}, você tem um lembrete de tarefa.`,
-            `
-              <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-                <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
-                <p>Detalhes da tarefa:</p>
-                <ul>
-                  <li><strong>Nome da Tarefa:</strong> ${newTask.title}</li>
-                  <li><strong>Data do Lembrete:</strong> ${newTask.reminderDate}</li>
-                  <li><strong>Hora do Lembrete:</strong> ${newTask.reminderHour}</li>
-                </ul>
-                <p><strong>Descrição da Tarefa:</strong></p>
-                <p>${newTask.text}</p>
-                <hr>
-                <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
-              </div>
-            `
-          );
-          console.log("Email de lembrete enviado com sucesso");
-        }
-      } catch (emailError) {
-        console.error("Erro ao enviar email de lembrete:", emailError);
-      }
-    });
+    scheduleTask(newTask);
 
     res.status(201).json("taskSaved");
   } catch (error) {
@@ -176,6 +137,46 @@ app.post("/tasks", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+function scheduleTask(task) {
+  const reminderDateTime = new Date(task.reminderDate + 'T' + task.reminderHour + ':00');
+  const minute = reminderDateTime.getMinutes();
+  const hour = reminderDateTime.getHours();
+  const dayOfMonth = reminderDateTime.getDate();
+  const month = reminderDateTime.getMonth() + 1; // getMonth retorna de 0 a 11
+  const cronExpression = `${minute} ${hour} ${dayOfMonth} ${month} *`;
+
+  cron.schedule(cronExpression, async () => {
+    try {
+      const user = await UserModel.findById(task.userId);
+      if (user) {
+        await sendMail(
+          user.email,
+          "Lembrete de Tarefa",
+          `Olá ${task.author}, você tem um lembrete de tarefa.`,
+          `
+            <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+              <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
+              <p>Detalhes da tarefa:</p>
+              <ul>
+                <li><strong>Nome da Tarefa:</strong> ${task.title}</li>
+                <li><strong>Data do Lembrete:</strong> ${task.reminderDate}</li>
+                <li><strong>Hora do Lembrete:</strong> ${task.reminderHour}</li>
+              </ul>
+              <p><strong>Descrição da Tarefa:</strong></p>
+              <p>${task.text}</p>
+              <hr>
+              <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
+            </div>
+          `
+        );
+        console.log("Email de lembrete enviado com sucesso");
+      }
+    } catch (emailError) {
+      console.error("Erro ao enviar email de lembrete:", emailError);
+    }
+  });
+}
 
 // Rota para editar uma tarefa pelo ID
 app.put("/tasks/:id", async (req, res) => {
