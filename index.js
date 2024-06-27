@@ -10,40 +10,28 @@ const sendMail = require("./nodeMailer");
 const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const secretKey = process.env.SECRETKEY
-const cron = require("node-cron");
-const scheduleTasks = require('./scheduler');
+const secretKey = process.env.SECRETKEY;
+fs = require('fs');
+
 
 
 // Middleware para analisar corpos de solicitação no express
 app.use(bodyParser.json());
 app.use(cors());
 
-// URL de conexão com o mongo
+// Conectar ao MongoDB
 const mongoUrl = process.env.MONGO_CONECTION;
 
-
-// Configuração do MongoDB
+//Conexão com o mongo
 mongoose.connect(mongoUrl)
   .then(() => {
     console.log("Conexão estabelecida com sucesso com o MongoDB");
-
-    // Função para re-agendar tarefas
-    scheduleTasks()
-      .then(() => {
-        console.log("Tarefas agendadas com sucesso após a conexão ao MongoDB");
-      })
-      .catch(error => {
-        console.error("Erro ao agendar tarefas após a conexão ao MongoDB:", error);
-      });
   })
   .catch(error => {
     console.error("Erro ao conectar com o MongoDB:", error);
   });
 
-  
 //******************Rotas para contatos**********************
-
 // Rota para listar todos os contatos
 app.get("/contatos", async (req, res) => {
   try {
@@ -126,7 +114,76 @@ app.delete("/contatos/:id", async (req, res) => {
 
 //******************Rotas para tasks**********************
 
-// Rota para adicionar uma tarefa
+// Função para atualizar o arquivo vercel.json com os novos cron jobs
+function updateVercelCron(newCronJobs) {
+  try {
+    const vercelConfigPath = './vercel.json';
+    const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, 'utf-8'));
+
+    // Atualiza a seção de cron com os novos cron jobs
+    vercelConfig.crons = newCronJobs;
+
+    // Salva de volta no arquivo
+    fs.writeFileSync(vercelConfigPath, JSON.stringify(vercelConfig, null, 2));
+
+    console.log('Vercel cron jobs atualizados com sucesso.');
+  } catch (error) {
+    console.error('Erro ao atualizar Vercel cron jobs:', error);
+  }
+}
+
+// Função para gerar expressão cron com base no lembrete
+function generateCronExpression(reminderDate, reminderHour) {
+  const reminderDateTime = new Date(reminderDate + 'T' + reminderHour + ':00');
+  const minute = reminderDateTime.getMinutes();
+  const hour = reminderDateTime.getHours();
+  const dayOfMonth = reminderDateTime.getDate();
+  const month = reminderDateTime.getMonth() + 1; // getMonth retorna de 0 a 11
+  const cronExpression = `${minute} ${hour} ${dayOfMonth} ${month} *`;
+  return cronExpression;
+}
+
+// Função para agendar o envio de e-mail de lembrete
+async function scheduleEmailReminder(newTask) {
+  try {
+    const cronExpression = generateCronExpression(newTask.reminderDate, newTask.reminderHour);
+
+    cron.schedule(cronExpression, async () => {
+      try {
+        const user = await UserModel.findById(newTask.userId);
+        if (user) {
+          await sendMail(
+            user.email,
+            "Lembrete de Tarefa",
+            `Olá ${newTask.author}, você tem um lembrete de tarefa.`,
+            `
+              <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+                <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
+                <p>Detalhes da tarefa:</p>
+                <ul>
+                  <li><strong>Nome da Tarefa:</strong> ${newTask.title}</li>
+                  <li><strong>Data do Lembrete:</strong> ${newTask.reminderDate}</li>
+                  <li><strong>Hora do Lembrete:</strong> ${newTask.reminderHour}</li>
+                </ul>
+                <p><strong>Descrição da Tarefa:</strong></p>
+                <p>${newTask.text}</p>
+                <hr>
+                <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
+              </div>
+            `
+          );
+          console.log("Email de lembrete enviado com sucesso");
+        }
+      } catch (emailError) {
+        console.error("Erro ao enviar email de lembrete:", emailError);
+      }
+    });
+  } catch (error) {
+    console.error("Erro ao agendar email de lembrete:", error);
+  }
+}
+
+// Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
   const newTask = new TaskModel({
     author: req.body.author,
@@ -142,7 +199,27 @@ app.post("/tasks", async (req, res) => {
     await newTask.save();
 
     // Agendar envio de email no dia e hora do lembrete
-    scheduleTask(newTask);
+    await scheduleEmailReminder(newTask);
+
+    // Obter os cron jobs atuais do vercel.json
+    const vercelConfigPath = './vercel.json';
+    const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, 'utf-8'));
+    const currentCronJobs = vercelConfig.cron || [];
+
+    // Gerar novo cron job para esta tarefa
+    const cronExpression = generateCronExpression(newTask.reminderDate, newTask.reminderHour);
+    const newCronJob = {
+      name: `EmailReminder_${newTask._id}`, // Use um nome único para identificar este cron job
+      schedule: cronExpression,
+      endpoint: `/tasks/${newTask._id}/send-email`, // Exemplo de endpoint para enviar o email
+      description: `Envia um email de lembrete para a tarefa '${newTask.title}'`
+    };
+
+    // Adicionar o novo cron job aos cron jobs existentes
+    currentCronJobs.push(newCronJob);
+
+    // Atualizar o vercel.json com os novos cron jobs
+    updateVercelCron(currentCronJobs);
 
     res.status(201).json("taskSaved");
   } catch (error) {
@@ -150,47 +227,6 @@ app.post("/tasks", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
-// Agenda a tarefa de acordo com o lembrete e envia o email
-function scheduleTask(task) {
-  const reminderDateTime = new Date(task.reminderDate + 'T' + task.reminderHour + ':00');
-  const minute = reminderDateTime.getMinutes();
-  const hour = reminderDateTime.getHours();
-  const dayOfMonth = reminderDateTime.getDate();
-  const month = reminderDateTime.getMonth() + 1; // getMonth retorna de 0 a 11
-  const cronExpression = `${minute} ${hour} ${dayOfMonth} ${month} *`;
-
-  cron.schedule(cronExpression, async () => {
-    try {
-      const user = await UserModel.findById(task.userId);
-      if (user) {
-        await sendMail(
-          user.email,
-          "Lembrete de Tarefa",
-          `Olá ${task.author}, você tem um lembrete de tarefa.`,
-          `
-            <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-              <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
-              <p>Detalhes da tarefa:</p>
-              <ul>
-                <li><strong>Nome da Tarefa:</strong> ${task.title}</li>
-                <li><strong>Data do Lembrete:</strong> ${task.reminderDate}</li>
-                <li><strong>Hora do Lembrete:</strong> ${task.reminderHour}</li>
-              </ul>
-              <p><strong>Descrição da Tarefa:</strong></p>
-              <p>${task.text}</p>
-              <hr>
-              <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
-            </div>
-          `
-        );
-        console.log("Email de lembrete enviado com sucesso");
-      }
-    } catch (emailError) {
-      console.error("Erro ao enviar email de lembrete:", emailError);
-    }
-  });
-}
 
 // Rota para editar uma tarefa pelo ID
 app.put("/tasks/:id", async (req, res) => {
