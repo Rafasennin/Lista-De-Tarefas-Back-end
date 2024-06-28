@@ -12,6 +12,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRETKEY;
 fs = require('fs');
+const { CronJob } = require('cron');
+
 
 
 
@@ -148,7 +150,7 @@ async function scheduleEmailReminder(newTask) {
   try {
     const cronExpression = generateCronExpression(newTask.reminderDate, newTask.reminderHour);
 
-    cron.schedule(cronExpression, async () => {
+    new CronJob(cronExpression, async () => {
       try {
         const user = await UserModel.findById(newTask.userId);
         if (user) {
@@ -177,22 +179,30 @@ async function scheduleEmailReminder(newTask) {
       } catch (emailError) {
         console.error("Erro ao enviar email de lembrete:", emailError);
       }
-    });
+    }, null, true, 'America/Sao_Paulo'); // Especifique a zona de tempo se necessário
+
+    console.log(`Tarefa ${newTask.title} agendada com sucesso com a expressão cron: ${cronExpression}`);
   } catch (error) {
     console.error("Erro ao agendar email de lembrete:", error);
   }
 }
 
-// Rota para adicionar uma nova tarefa
+
 app.post("/tasks", async (req, res) => {
+  const { author, title, date, text, reminderDate, reminderHour, userId } = req.body;
+  
+  if (!author || !title || !text || !reminderDate || !reminderHour || !userId) {
+    return res.status(400).json({ message: "Todos os campos são obrigatórios." });
+  }
+
   const newTask = new TaskModel({
-    author: req.body.author,
-    title: req.body.title,
-    date: req.body.date,
-    text: req.body.text,
-    reminderDate: req.body.reminderDate,
-    reminderHour: req.body.reminderHour,
-    userId: req.body.userId
+    author,
+    title,
+    date,
+    text,
+    reminderDate,
+    reminderHour,
+    userId
   });
 
   try {
@@ -225,6 +235,7 @@ app.post("/tasks", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 // Rota para editar uma tarefa pelo ID
 app.put("/tasks/:id", async (req, res) => {
