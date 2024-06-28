@@ -18,7 +18,7 @@ async function handler(req, res) {
             if (user) {
                 await sendMail(
                     user.email,
-                    "Lembrete de Tarefa",
+                    "Lembrete de Tarefas",
                     `Olá ${task.author}, você tem um lembrete de tarefa.`,
                     `
             <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
