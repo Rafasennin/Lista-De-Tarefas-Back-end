@@ -11,10 +11,7 @@ const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRETKEY;
-fs = require('fs');
-const { CronJob } = require('cron');
-
-
+const cron = require('node-cron');
 
 
 // Middleware para analisar corpos de solicitação no express
@@ -116,21 +113,33 @@ app.delete("/contatos/:id", async (req, res) => {
 
 //******************Rotas para tasks**********************
 
-// Função para atualizar o arquivo vercel.json com os novos cron jobs
-function updateVercelCron(newCronJobs) {
+// Função para enviar email imediatamente após cadastrar a tarefa
+async function sendImmediateEmail(newTask) {
   try {
-    const vercelConfigPath = './vercel.json';
-    const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, 'utf-8'));
-
-    // Atualiza a seção de cron com os novos cron jobs
-    vercelConfig.crons = newCronJobs;
-
-    // Salva de volta no arquivo
-    fs.writeFileSync(vercelConfigPath, JSON.stringify(vercelConfig, null, 2));
-
-    console.log('Vercel cron jobs atualizados com sucesso.');
-  } catch (error) {
-    console.error('Erro ao atualizar Vercel cron jobs:', error);
+    const user = await UserModel.findById(newTask.userId);
+    if (user) {
+      await sendMail(
+        user.email,
+        "Nova Tarefa Cadastrada",
+        `Olá ${newTask.author}, sua nova tarefa foi cadastrada com sucesso.`,
+        `
+          <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+            <h1 style="color: #007bff;">Nova Tarefa Cadastrada!</h1>
+            <p>Detalhes da tarefa:</p>
+            <ul>
+              <li><strong>Nome da Tarefa:</strong> ${newTask.title}</li>
+              <li><strong>Data de Cadastro:</strong> ${newTask.date}</li>
+              <li><strong>Descrição da Tarefa:</strong> ${newTask.text}</li>
+            </ul>
+            <hr>
+            <p style="font-size: 0.9em; color: #555;">Este é um email automático, por favor, não responda.</p>
+          </div>
+        `
+      );
+      console.log("Email de nova tarefa enviado com sucesso");
+    }
+  } catch (emailError) {
+    console.error("Erro ao enviar email de nova tarefa:", emailError);
   }
 }
 
@@ -150,14 +159,14 @@ async function scheduleEmailReminder(newTask) {
   try {
     const cronExpression = generateCronExpression(newTask.reminderDate, newTask.reminderHour);
 
-    new CronJob(cronExpression, async () => {
+    cron.schedule(cronExpression, async () => {
       try {
         const user = await UserModel.findById(newTask.userId);
         if (user) {
           await sendMail(
             user.email,
             "Lembrete de Tarefa",
-            `Olá ${newTask.author}, você tem um lembrete de tarefa.`,
+            `Olá ${newTask.author}, você tem um lembrete de tarefa agendado.`,
             `
               <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
                 <h1 style="color: #007bff;">Lembrete de Tarefa!</h1>
@@ -179,7 +188,10 @@ async function scheduleEmailReminder(newTask) {
       } catch (emailError) {
         console.error("Erro ao enviar email de lembrete:", emailError);
       }
-    }, null, true, 'America/Sao_Paulo'); // Especifique a zona de tempo se necessário
+    }, {
+      scheduled: true,
+      timezone: 'America/Sao_Paulo'
+    });
 
     console.log(`Tarefa ${newTask.title} agendada com sucesso com a expressão cron: ${cronExpression}`);
   } catch (error) {
@@ -187,10 +199,10 @@ async function scheduleEmailReminder(newTask) {
   }
 }
 
-
+// Rota para adicionar uma nova tarefa
 app.post("/tasks", async (req, res) => {
   const { author, title, date, text, reminderDate, reminderHour, userId } = req.body;
-  
+
   if (!author || !title || !text || !reminderDate || !reminderHour || !userId) {
     return res.status(400).json({ message: "Todos os campos são obrigatórios." });
   }
@@ -208,26 +220,11 @@ app.post("/tasks", async (req, res) => {
   try {
     await newTask.save();
 
+    // Enviar email imediatamente após cadastrar a tarefa
+    await sendImmediateEmail(newTask);
+
     // Agendar envio de email no dia e hora do lembrete
     await scheduleEmailReminder(newTask);
-
-    // Obter os cron jobs atuais do vercel.json
-    const vercelConfigPath = './vercel.json';
-    const vercelConfig = JSON.parse(fs.readFileSync(vercelConfigPath, 'utf-8'));
-    const currentCronJobs = vercelConfig.cron || [];
-
-    // Gerar novo cron job para esta tarefa
-    const cronExpression = generateCronExpression(newTask.reminderDate, newTask.reminderHour);
-    const newCronJob = {
-      path: "/api/cron", 
-      schedule: cronExpression,
-    };
-
-    // Adicionar o novo cron job aos cron jobs existentes
-    currentCronJobs.push(newCronJob);
-
-    // Atualizar o vercel.json com os novos cron jobs
-    updateVercelCron(currentCronJobs);
 
     res.status(201).json("taskSaved");
   } catch (error) {
