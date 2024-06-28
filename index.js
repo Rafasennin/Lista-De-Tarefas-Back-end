@@ -219,7 +219,7 @@ app.post("/tasks", async (req, res) => {
     // Gerar novo cron job para esta tarefa
     const cronExpression = generateCronExpression(newTask.reminderDate, newTask.reminderHour);
     const newCronJob = {
-      path: "./api/cron.js", 
+      path: "/api/cron", 
       schedule: cronExpression,
     };
 
