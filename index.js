@@ -209,10 +209,8 @@ app.post("/tasks", async (req, res) => {
     // Gerar novo cron job para esta tarefa
     const cronExpression = generateCronExpression(newTask.reminderDate, newTask.reminderHour);
     const newCronJob = {
-      name: `EmailReminder_${newTask._id}`, // Use um nome único para identificar este cron job
+      path: "./api/cron.js", 
       schedule: cronExpression,
-      endpoint: `/tasks/${newTask._id}/send-email`, // Exemplo de endpoint para enviar o email
-      description: `Envia um email de lembrete para a tarefa '${newTask.title}'`
     };
 
     // Adicionar o novo cron job aos cron jobs existentes

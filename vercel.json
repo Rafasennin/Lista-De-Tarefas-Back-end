@@ -1,22 +1,21 @@
 {
-    "version": 2,
-    "crons": [
-      {
-        "path": "/api/cron",
-        "schedule": "0 5 * * *"
-      }
-    ],
-    "builds": [
-      {
-        "src": "./index.js",
-        "use": "@vercel/node"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "/"
-      }
-    ]
-  }
-  
+  "version": 2,
+  "crons": [
+    {
+      "path": "./api/cron.js",
+      "schedule": "14 9 28 6 *"
+    }
+  ],
+  "builds": [
+    {
+      "src": "./index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ]
+}

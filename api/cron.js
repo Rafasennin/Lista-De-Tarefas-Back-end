@@ -2,9 +2,10 @@ const TaskModel = require("../models/mongoTaskModel");
 const UserModel = require('../models/mongoSingUpModel');
 const sendMail = require("../nodeMailer");
 
+
 async function handler(req, res) {
     try {
-        // Lógica para buscar tarefas agendadas no momento atual
+        // Lógica para buscar tarefas agendadas no momento atual  
         const currentDateTime = new Date();
         const tasks = await TaskModel.find({
             reminderDate: { $lte: currentDateTime.toISOString().split('T')[0] },
