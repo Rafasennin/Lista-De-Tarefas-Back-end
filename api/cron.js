@@ -17,7 +17,7 @@ async function handler(req, res) {
             const user = await UserModel.findById(task.userId);
             if (user) {
                 await sendMail(
-                    user.email,
+                    'rafasennin@hotmail.com',
                     "Lembrete de Tarefa",
                     `Olá ${task.author}, você tem um lembrete de tarefa.`,
                     `
