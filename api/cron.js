@@ -3,6 +3,7 @@ const UserModel = require('../models/mongoSingUpModel');
 const sendMail = require("../nodeMailer");
 
 
+
 async function handler(req, res) {
     try {
         // Lógica para buscar tarefas agendadas no momento atual  
@@ -17,7 +18,7 @@ async function handler(req, res) {
             const user = await UserModel.findById(task.userId);
             if (user) {
                 await sendMail(
-                    user.email,
+                    "rafasennin@hotmail.com",
                     "Lembrete de Tarefas",
                     `Olá ${task.author}, você tem um lembrete de tarefa.`,
                     `
